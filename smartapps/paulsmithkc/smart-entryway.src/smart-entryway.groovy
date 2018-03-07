@@ -26,49 +26,6 @@ definition(
 
 preferences {
     page(name: "page1", install: true, uninstall: true)
-    /*
-    //page(name: "indoor", title: "Indoor Lights", nextPage: "outdoor", uninstall: true) {
-        section(hideable: true, hidden: true, "Indoor Lights") {
-            input "indoorSwitch", "capability.switch", multiple: true, required: false, title: "What switch(s) controls the indoor lights?"
-            input "indoorMotion", "capability.motionSensor", multiple: true, required: false, title: "Whould you like the indoor lights to turn on when motion is detected?"
-            input "indoorLights", "capability.switch", multiple: true, required: false, title: "Which indoor lights do you want to control with this app?"
-            input "indoorTimeout", "number", required: false, title: "How many minutes do you want to wait to turn the indoor lights off, when nothing is happening?"
-        }
-    //}
-    //page(name: "outdoor", title: "Outdoor Lights", nextPage: "sunset") {
-        section(hideable: true, hidden: true, "Outdoor Lights") {
-            input "outdoorSwitch", "capability.switch", multiple: true, required: false, title: "What switch(s) controls the outdoor lights?"
-            input "outdoorMotion", "capability.motionSensor", multiple: true, required: false, title: "Whould you like the outdoor lights to turn on when motion is detected?"
-            input "outdoorLights", "capability.switch", multiple: true, required: false, title: "Which outdoor lights do you want to control with this app?"
-            input "outdoorTimeout", "number", required: false, title: "How many minutes do you want to wait to turn the outdoor lights off, when nothing is happening?"
-        }
-    //}
-    //page(name: "sunset", title: "Sunset", nextPage: "door") {
-    	section(hideable: true, hidden: true, "Sunset") {
-            input "sunsetOffset", "number", required: true, title: "How many minutes before sunset do you want to turn the lights on?"
-            input "sunsetLights", "capability.switch", multiple: true, required: false, title: "Which lights do you want to turn on at sunset?"
-            input "sunriseOffset", "number", required: true, title: "How many minutes before sunrise do you want to turn the lights off?"
-        }
-    //}
-    //page(name: "door", title: "Door", install: true, uninstall: true) {
-    	section(hideable: true, hidden: true, "Door") {
-            input "doorOpen", "capability.contactSensor", multiple: true, required: false, title: "Whould you like the lights to turn on when the door is opened?"
-            input "doorKnock", "capability.accelerationSensor", multiple: true, required: false, title: "Whould you like the lights to turn on when the door is knocked?"
-            input "knockDayLights", "capability.switch", multiple: true, required: false, title: "Which lights do you want to turn on when the door is knocked during the day?"
-            input "knockNightLights", "capability.switch", multiple: true, required: false, title: "Which lights do you want to turn on when the door is knocked during the night?"
-        }
-    //}
-    */
-    /*
-    section("Sound") {
-        //input "soundMedia", "capability.mediaController"
-        //input "soundMusic", "capability.musicPlayer"
-        //input "soundTone", "capability.tone"
-        //input "soundAlarm", "capability.alarm"
-        //input "soundNotification", "capability.audioNotification"
-        //input "soundSpeech", "capability.speechSynthesis"
-    }
-    */
 }
 
 def page1() {
@@ -81,12 +38,14 @@ def page1() {
         section(hideable: installed, hidden: indoorHidden, "Indoor Lights") {
             input "indoorLights", "capability.switch", multiple: true, required: false, title: "Which indoor lights do you want to control with this app?"
             input "indoorSwitch", "capability.switch", multiple: true, required: false, title: "What switch(s) controls the indoor lights?"
+            //input "indoorButton", "capability.button", multiple: true, required: false, title: "What button(s) controls the indoor lights?"
             input "indoorMotion", "capability.motionSensor", multiple: true, required: false, title: "Whould you like the indoor lights to turn on when motion is detected?"
             input "indoorTimeout", "number", required: false, title: "How many minutes do you want to wait to turn the indoor lights off, when nothing is happening?"
         }
         section(hideable: installed, hidden: outdoorHidden, "Outdoor Lights") {
             input "outdoorLights", "capability.switch", multiple: true, required: false, title: "Which outdoor lights do you want to control with this app?"
             input "outdoorSwitch", "capability.switch", multiple: true, required: false, title: "What switch(s) controls the outdoor lights?"
+            //input "outdoorButton", "capability.button", multiple: true, required: false, title: "What button(s) controls the outdoor lights?"
             input "outdoorMotion", "capability.motionSensor", multiple: true, required: false, title: "Whould you like the outdoor lights to turn on when motion is detected?"
             input "outdoorTimeout", "number", required: false, title: "How many minutes do you want to wait to turn the outdoor lights off, when nothing is happening?"
         }
@@ -129,7 +88,7 @@ def updated() {
 }
 
 def initialize() {
-    subscribe(app, appTouch)
+    //subscribe(app, appTouch)
 
     // Sunset and Sunrise
     subscribe(location, "sunsetTime", sunsetTimeHandler);
@@ -150,18 +109,26 @@ def initialize() {
     	subscribe(doorKnock, "acceleration.active", doorKnockHandler);
     }
     
-    // Indoor / Outdoor Lights and Switches
+    // Indoor Lights and Switches
     if (indoorSwitch) {
         subscribe(indoorSwitch, "switch", indoorSwitchHandler);
         subscribe(indoorSwitch, "level", indoorDimHandler);
     }
+    //if (indoorButton) {
+    //    subscribe(indoorButton, "button", indoorButtonHandler);
+    //}
+    if (indoorMotion) {
+    	subscribe(indoorMotion, "motion", indoorMotionHandler);
+    }
+    
+    // Outdoor Lights and Switches
     if (outdoorSwitch) {
     	subscribe(outdoorSwitch, "switch", outdoorSwitchHandler);
     	subscribe(outdoorSwitch, "level", outdoorDimHandler);
     }
-    if (indoorMotion) {
-    	subscribe(indoorMotion, "motion", indoorMotionHandler);
-    }
+    //if (outdoorButton) {
+    //    subscribe(outdoorButton, "button", outdoorButtonHandler);
+    //}
     if (outdoorMotion) {
     	subscribe(outdoorMotion, "motion", outdoorMotionHandler);
     }
@@ -213,9 +180,9 @@ def outsideTimeoutHandler() {
     }
 }
 
-def appTouch(evt) {
-	indoorLights?.on()
-}
+//def appTouch(evt) {
+//	indoorLights?.on()
+//}
 
 def sunsetTimeHandler(evt) {
     scheduleSunset(evt.value)
@@ -315,6 +282,32 @@ def outdoorSwitchHandler(evt) {
     }
     setLastActivatedOutdoor(evt.value)
 }
+
+/*
+def indoorButtonHandler(evt) {
+    if (evt.value == "pushed") {
+        log.debug("indoor button pushed")
+        if (indoorSwitch) { 
+        	indoorSwitch?.toggle() 
+        } else {
+    		indoorLights?.toggle()
+        }
+    }
+    setLastActivatedIndoor(evt.value)
+}
+
+def outdoorButtonHandler(evt) {
+    if (evt.value == "pushed") {
+        log.debug("outdoor button pushed")
+        if (outdoorSwitch) { 
+        	outdoorSwitch?.toggle() 
+        } else {
+    		outdoorLights?.toggle()
+        }
+    }
+    setLastActivatedOutdoor(evt.value)
+}
+*/
 
 def indoorDimHandler(evt) {
     log.debug("indoor dimmer: $evt.value")

@@ -18,7 +18,7 @@ definition(
     namespace: "paulsmithkc",
     author: "Paul Smith",
     description: "Simple automation for entryways, doors, and outdoor lighting.",
-    category: "My Apps",
+    category: "Mode Magic",
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/smartlights.png",
     iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/smartlights@2x.png",
     iconX3Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/smartlights@2x.png")

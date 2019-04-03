@@ -37,10 +37,12 @@ def page1() {
             input "lights", "capability.switch", multiple: true, required: false, title: "Which lights do you want to control with this app?"
             input "doorOpen", "capability.contactSensor", multiple: true, required: false, title: "Whould you like the lights to turn on when the door is opened?"
             input "motion", "capability.motionSensor", multiple: true, required: false, title: "Whould you like the lights to turn on when motion is detected?"
-            input "timeout", "number", required: false, title: "How many minutes do you want to wait to turn the lights off, when nothing is happening?"
+            input "timeout", "number", required: false, title: "How many minutes do you want to wait to turn the lights off, when nothing is happening?", defaultValue: 60
+            input "lightLevel", "number", required: false, title: "How bright do you want the lights?", defaultValue: 100
         }
         section(mobileOnly: true, "Name") {
 			label title: "Do you want to name this app?", required: false
+            //icon title: "Do you want to give this app a special icon?", required: false
 		}
     }
 }
@@ -99,15 +101,23 @@ def timeoutHandler() {
     }
 }
 
+def turnOnLights() {
+	if (lights) {
+		lights?.on()
+    	if (lightLevel) { lights?.setLevel(lightLevel) }
+    }
+    setLastActivated("on")
+}
+
 def switchHandler(evt) {
     if (evt.value == "on") {
         log.debug("light switch turned on")
-    	lights?.on()
+    	turnOnLights()
     } else if (evt.value == "off") {
     	log.debug("light switch turned off")
     	lights?.off()
+        setLastActivatedIndoor("off")
     }
-    setLastActivatedIndoor(evt.value)
 }
 
 def dimHandler(evt) {
@@ -118,14 +128,12 @@ def dimHandler(evt) {
 
 def doorOpenHandler(evt) {
     log.debug("door open detected")
-    lights?.on()
-    setLastActivated("on")
+    turnOnLights()
 }
 
 def motionHandler(evt) {
     if (evt.value == "active") {
         log.debug("indoor motion detected")
-        lights?.on()
-        setLastActivated("on")
+        turnOnLights()
     }
 }

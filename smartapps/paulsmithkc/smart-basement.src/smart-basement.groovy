@@ -38,7 +38,7 @@ def page1() {
             input "doorOpen", "capability.contactSensor", multiple: true, required: false, title: "Whould you like the lights to turn on when the door is opened?"
             input "motion", "capability.motionSensor", multiple: true, required: false, title: "Whould you like the lights to turn on when motion is detected?"
             input "timeout", "number", required: false, title: "How many minutes do you want to wait to turn the lights off, when nothing is happening?", defaultValue: 60
-            input "lightLevel", "number", required: false, title: "How bright do you want the lights?", defaultValue: 100
+            //input "lightLevel", "number", required: false, title: "How bright do you want the lights?", defaultValue: 100
         }
         section(mobileOnly: true, "Name") {
 			label title: "Do you want to name this app?", required: false
@@ -81,59 +81,63 @@ def initialize() {
 def setLastActivated(value) {
 	state.lastActivated = now();
     if (timeout && value == "on") {
-        runIn(60 * timeout, timeoutHandler)
+        runIn(60 * timeout, timeoutHandler);
     }
 }
 
 def timeoutHandler() {
-    if (motion) {
+    /*if (motion) {
         // Don't timeout if there is still motion detected
     	def motionState = motion.currentState("motion");
         if (motionState.value == "active") { return; }
-    }
+    }*/
     
     def elapsed = now() - state.lastActivatedIndoor;
     def timeout = (indoorTimeout - 1) * 60 * 1000;
     if (elapsed >= timeout) {
         log.debug("timeout");
-        lights?.off()
-        state.lastActivated = now();
+        turnOffLights();
     }
-}
-
-def turnOnLights() {
-	if (lights) {
-		lights?.on()
-    	if (lightLevel) { lights?.setLevel(lightLevel) }
-    }
-    setLastActivated("on")
 }
 
 def switchHandler(evt) {
     if (evt.value == "on") {
-        log.debug("light switch turned on")
-    	turnOnLights()
+        log.debug("light switch turned on");
+        turnOnLights();
     } else if (evt.value == "off") {
-    	log.debug("light switch turned off")
-    	lights?.off()
-        setLastActivatedIndoor("off")
+    	log.debug("light switch turned off");
+        turnOffLights();
     }
 }
 
 def dimHandler(evt) {
-    log.debug("light dimmer: $evt.value")
-    lights?.setLevel(evt.value)
-    setLastActivated("on")
+    log.debug("light dimmer: $evt.value");
+    setLastActivated("on");
+    lights?.setLevel(evt.value);
 }
 
 def doorOpenHandler(evt) {
-    log.debug("door open detected")
-    turnOnLights()
+    log.debug("door open detected");
+    turnOnLights();
 }
 
 def motionHandler(evt) {
     if (evt.value == "active") {
-        log.debug("indoor motion detected")
-        turnOnLights()
+        log.debug("motion detected");
+        turnOnLights();
     }
+}
+
+def turnOnLights() {
+	setLastActivated("on");
+    def switchValue = lightSwitch.currentValue("switch");
+    if (switchValue != "on") { lightSwitch?.on(); }
+    lights?.on();
+}
+
+def turnOffLights() {
+	setLastActivated("off");
+    def switchValue = lightSwitch.currentValue("switch");
+    if (switchValue != "off") { lightSwitch?.off(); }
+    lights?.off();
 }

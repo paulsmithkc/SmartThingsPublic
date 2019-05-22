@@ -36,16 +36,16 @@ def page1() {
         def doorHidden = installed && !doorOpen && !doorKnock;
 
         section(hideable: installed, hidden: indoorHidden, "Indoor Lights") {
-            input "indoorLights", "capability.switch", multiple: true, required: false, title: "Which indoor lights do you want to control with this app?"
             input "indoorSwitch", "capability.switch", multiple: true, required: false, title: "What switch(s) controls the indoor lights?"
             //input "indoorButton", "capability.button", multiple: true, required: false, title: "What button(s) controls the indoor lights?"
+            input "indoorLights", "capability.switch", multiple: true, required: false, title: "Which indoor lights do you want to control with this app?"
             input "indoorMotion", "capability.motionSensor", multiple: true, required: false, title: "Whould you like the indoor lights to turn on when motion is detected?"
             input "indoorTimeout", "number", required: false, title: "How many minutes do you want to wait to turn the indoor lights off, when nothing is happening?"
         }
         section(hideable: installed, hidden: outdoorHidden, "Outdoor Lights") {
-            input "outdoorLights", "capability.switch", multiple: true, required: false, title: "Which outdoor lights do you want to control with this app?"
             input "outdoorSwitch", "capability.switch", multiple: true, required: false, title: "What switch(s) controls the outdoor lights?"
             //input "outdoorButton", "capability.button", multiple: true, required: false, title: "What button(s) controls the outdoor lights?"
+            input "outdoorLights", "capability.switch", multiple: true, required: false, title: "Which outdoor lights do you want to control with this app?"
             input "outdoorMotion", "capability.motionSensor", multiple: true, required: false, title: "Whould you like the outdoor lights to turn on when motion is detected?"
             input "outdoorTimeout", "number", required: false, title: "How many minutes do you want to wait to turn the outdoor lights off, when nothing is happening?"
         }
@@ -149,33 +149,33 @@ def setLastActivatedOutdoor(value) {
 }
 
 def insideTimeoutHandler() {
-    if (indoorMotion) {
+    /*if (indoorMotion) {
         // Don't timeout if there is still motion detected
     	def motionState = indoorMotion.currentState("motion");
         if (motionState.value == "active") { return; }
-    }
+    }*/
     
     def elapsed = now() - state.lastActivatedIndoor;
     def timeout = (indoorTimeout - 1) * 60 * 1000;
     if (elapsed >= timeout) {
         log.debug("indoor timeout");
-        indoorLights?.off()
+        turnOffIndoorLights()
         state.lastActivatedIndoor = now();
     }
 }
 
 def outsideTimeoutHandler() {
-    if (outdoorMotion) {
+    /*if (outdoorMotion) {
         // Don't timeout if there is still motion detected
     	def motionState = outdoorMotion.currentState("motion");
         if (motionState.value == "active") { return; }
-    }
+    }*/
     
     def elapsed = now() - state.lastActivatedOutdoor;
     def timeout = (outdoorTimeout - 1) * 60 * 1000;
     if (elapsed >= timeout) {
         log.debug("outdoor timeout");
-        outdoorLights?.off();
+        turnOffOutdoorLights()
         state.lastActivatedOutdoor = now();
     }
 }
@@ -217,30 +217,29 @@ def scheduleSunrise(sunriseString) {
 def sunsetHandler() {
     log.debug("sunset")
     state.night = true
-    sunsetLights?.on()
-    //indoorLights?.on()
-    outdoorLights?.on()
     setLastActivatedIndoor("on")
     setLastActivatedOutdoor("on")
+    
+    sunsetLights?.on()
+    turnOnOutdoorLights()
 }
 
 def sunriseHandler() {
     log.debug("sunrise")
     state.night = false
+    setLastActivatedIndoor("on")
+    setLastActivatedOutdoor("on")
+    
     sunsetLights?.off()
-    indoorLights?.off()
-    outdoorLights?.off()
-    setLastActivatedIndoor("off")
-    setLastActivatedOutdoor("off")
+    turnOffIndoorLights()
+    turnOffOutdoorLights()
 }
 
 def doorOpenHandler(evt) {
     log.debug("door open detected")
     if (state.night) {
-		indoorLights?.on()
-    	outdoorLights?.on()
-        setLastActivatedIndoor("on")
-    	setLastActivatedOutdoor("on")
+		turnOnIndoorLights()
+    	turnOnOutdoorLights()
     }
 }
 
@@ -248,15 +247,15 @@ def doorKnockHandler(evt) {
     log.debug("door knock detected")
     if (state.night) {
         if (knockNightLights) {
-        	knockNightLights?.on()
             setLastActivatedIndoor("on")
     		setLastActivatedOutdoor("on")
+            knockNightLights?.on()
         }
     } else {
         if (knockDayLights) {
-    		knockDayLights?.on()
             setLastActivatedIndoor("on")
     		setLastActivatedOutdoor("on")
+            knockDayLights?.on()
         }
     }
 }
@@ -264,27 +263,26 @@ def doorKnockHandler(evt) {
 def indoorSwitchHandler(evt) {
     if (evt.value == "on") {
         log.debug("indoor switch turned on")
-    	indoorLights?.on()
+    	turnOnIndoorLights();
     } else if (evt.value == "off") {
     	log.debug("indoor switch turned off")
-    	indoorLights?.off()
+    	turnOffIndoorLights();
     }
-    setLastActivatedIndoor(evt.value)
 }
 
 def outdoorSwitchHandler(evt) {
     if (evt.value == "on") {
         log.debug("outdoor switch turned on")
-    	outdoorLights?.on()
+    	turnOnOutdoorLights();
     } else if (evt.value == "off") {
     	log.debug("outdoor switch turned off")
-    	outdoorLights?.off()
+    	turnOffOutdoorLights();
     }
-    setLastActivatedOutdoor(evt.value)
 }
 
 /*
 def indoorButtonHandler(evt) {
+	setLastActivatedIndoor("on")
     if (evt.value == "pushed") {
         log.debug("indoor button pushed")
         if (indoorSwitch) { 
@@ -293,10 +291,10 @@ def indoorButtonHandler(evt) {
     		indoorLights?.toggle()
         }
     }
-    setLastActivatedIndoor(evt.value)
 }
 
 def outdoorButtonHandler(evt) {
+	setLastActivatedOutdoor("on")
     if (evt.value == "pushed") {
         log.debug("outdoor button pushed")
         if (outdoorSwitch) { 
@@ -305,36 +303,77 @@ def outdoorButtonHandler(evt) {
     		outdoorLights?.toggle()
         }
     }
-    setLastActivatedOutdoor(evt.value)
 }
 */
 
 def indoorDimHandler(evt) {
     log.debug("indoor dimmer: $evt.value")
+    setLastActivatedIndoor("on")
     indoorLights?.setLevel(evt.value)
 }
 
 def outdoorDimHandler(evt) {
     log.debug("outdoor dimmer: $evt.value")
+    setLastActivatedOutdoor("on")
     outdoorLights?.setLevel(evt.value)
 }
 
 def indoorMotionHandler(evt) {
+	setLastActivatedIndoor("on")
     if (evt.value == "active") {
         log.debug("indoor motion detected")
         if (state.night) {
-            indoorLights?.on()
+            turnOnIndoorLights()
         }
     }
-    setLastActivatedIndoor("on")
 }
 
 def outdoorMotionHandler(evt) {
+	setLastActivatedOutdoor("on")
     if (evt.value == "active") {
         log.debug("outdoor motion detected")
         if (state.night) {
-            outdoorLights?.on()
+            turnOnOutdoorLights()
         }
     }
-    setLastActivatedOutdoor("on")
+}
+
+def turnOnIndoorLights() {
+	setLastActivatedIndoor("on");
+    def sw = indoorSwitch;
+    if (sw) {
+        def switchValue = sw.currentValue("switch");
+        if (switchValue != "on") { sw?.on(); }
+    }
+    indoorLights?.on();
+}
+
+def turnOffIndoorLights() {
+	setLastActivatedIndoor("off");
+    def sw = indoorSwitch;
+    if (sw) {
+        def switchValue = sw.currentValue("switch");
+        if (switchValue != "off") { sw?.off(); }
+    }
+    indoorLights?.off();
+}
+
+def turnOnOutdoorLights() {
+	setLastActivatedOutdoor("on");
+    def sw = outdoorSwitch;
+    if (sw) {
+        def switchValue = sw.currentValue("switch");
+        if (switchValue != "off") { sw?.off(); }
+    }
+    outdoorLights?.on();
+}
+
+def turnOffOutdoorLights() {
+	setLastActivatedOutdoor("off");
+    def sw = outdoorSwitch;
+    if (sw) {
+        def switchValue = sw.currentValue("switch");
+        if (switchValue != "off") { sw?.off(); }
+    }
+    outdoorLights?.off();
 }
